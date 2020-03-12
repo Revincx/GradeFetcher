@@ -7,5 +7,4 @@ public class Grade
 	public String stu_no;
 	public double score;
 	public int sch_rank;
-	public int cla_rank;
 }

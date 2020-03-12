@@ -18,10 +18,10 @@ import java.net.URL;
 import java.io.*;
 //import com.google.gson.*;
 
-public class Fetch
+public class FetchWK
 {
-	static String url_info = "http://39.106.132.239/ExamAPI/Exam/ScoreQuery/GetStuInfo";
-	static String url_score = "http://39.106.132.239/ExamAPI/Exam/ScoreQuery/GetStuScore";
+	static String url_info = "http://www.wylkyj.com/ExamAPI/Exam/ScoreQuery/GetStuInfo";
+	static String url_score = "http://www.wylkyj.com/ExamAPI/Exam/ScoreQuery/GetStuScore";
 	public static void main(String[] args)
 	{
 		Scanner scanner = new Scanner(System.in);
@@ -30,9 +30,9 @@ public class Fetch
 		//输入考生号的前六位
 		scanner.close();
 		String stu_no = "";
-		File xls = new File("G:/eclipse/GradeFetcher/output/revincx.xls");
+		File xls = new File("/storage/emulated/0/AppProjects/GradeFetcher/output/g.xls");
 		//创建表格文件
-		if(!xls.exists()) 
+		if (!xls.exists()) 
 		{
 			try
 			{
@@ -52,81 +52,129 @@ public class Fetch
 			//创建工作簿
 			int row = 1;
 			//定义初始行号
-			for(int i = 6;i<=30;i++)
-				//遍历班级号（理科班）
+			while (true)
+			//遍历考号
 			{
-				int j = 0;
-				while(true)
-					//遍历学号
 				{
-					j++;
-					stu_no = prefix + append(i) + append(j);
-					String json = fetchJson(stu_no,url_score);
-					//获取返回的JSON字符串
-					Gson gson = new Gson();
-					Result result = gson.fromJson(json, Result.class);
-					//将JSON解析为对象
+					stu_no = prefix + append(row +864) ;
+					Result result = fetchResult(stu_no, url_score);
+					//获取返回的结果
 					System.out.println("已获取" + stu_no);
 					Grade[] grades = result.datas;
-					if(grades[0].esub_name.equals("语文"))
-						//判断该考生是否不存在
+					int subject_num = grades.length;
+					if (row == 51) 
+					//判断该考生是否不存在
 					{
 						break;
 					}
-					if (grades[grades.length-1].esub_name.equals("理科总分")) 
-						//判断该考生是否缺考
-					{
-						continue;
-					}
-					int k = 0;
-					jxl.write.Label label_no = new jxl.write.Label(k,row,grades[0].stu_no);
-					jxl.write.Label label_name = new jxl.write.Label(k+1,row,grades[0].stu_name);
+					int column = 0;
+					jxl.write.Label label_no = new jxl.write.Label(column, row, grades[0].stu_no);
+					column++;
+					jxl.write.Label label_name = new jxl.write.Label(column, row, grades[0].stu_name);
+					column++;
 					//向单元格写入考生号和考生姓名
 					sheet.addCell(label_name);
 					sheet.addCell(label_no);
 					//把单元格加入工作簿
-					while(k<=7)
-						//遍历学科序号
+					int sch_rank = -1;
+					while (column < subject_num + 2)
+					//遍历学科序号
 					{
-						jxl.write.Label label_score = new jxl.write.Label(k+2,row,Integer.toString((int) grades[k].score));
+						String score = Integer.toString((int) grades[column-2].score);
+						if(score == null)
+						{
+							score = "";
+						}
+						
+						int write_column = -1;
+						switch(grades[column-2].esub_name)
+						{
+							case "语文" :
+								write_column = 2;
+								break;
+							case "文科数学" :
+								write_column = 3;
+								break;
+							case "英语" :
+								write_column = 4;
+								break;
+							case "英语虚拟" :
+								write_column = 5;
+								break;
+							case "文科综合" :
+								write_column = 6;
+								break;
+							case "政治" :
+								write_column = 7;
+								break;
+							case "历史" :
+								write_column = 8;
+								break;
+							case "地理" :
+								write_column = 9;
+								break;
+							case "文科总分" :
+								write_column = 10;
+								sch_rank = grades[column-2].sch_rank;
+								break;
+						}
+						jxl.write.Label label_score = new jxl.write.Label(write_column, row,score);
 						sheet.addCell(label_score);
-						//向工作簿写入考生成绩
-						k++;
+//						String score = Integer.toString((int) grades[column-2].score);
+//						if(score == null)
+//						{
+//							score = "";
+//						}
+//						jxl.write.Label label_score = new jxl.write.Label(column, row,score);
+//						sheet.addCell(label_score);
+//						//向工作簿写入考生成绩
+						column++;
 					}
+					jxl.write.Label label_rank = new jxl.write.Label(11,row,Integer.toString(sch_rank));
+					sheet.addCell(label_rank);
 					row++;
 					//使行号加一，移动到下一行
-					System.out.println("已添加" + stu_no);
+					System.out.println("已添加" + stu_no + grades[0].stu_name);
 				}
-				
+
 			}
+			System.out.println("写入文件中...");
 			workbook.write();
 			//把工作表写入到文件
 			workbook.close();
 			//关闭工作表
 			System.out.println("文件已写入");
-		} catch (Exception e) {
+		}
+		catch (Exception e)
+		{
 			e.printStackTrace();
 		}
-		
+
 //		System.out.println(fetchJson(stu_no, url_score));
 	}
-	
+
 	static String append(int i)
 	//把序号转换为带零的字符串
 	{
 		String str = Integer.toString(i);
-		if(str.length() == 1)
+		if (str.length() == 1)
+		{
+			str = "00" + str;
+		}
+		else if (str.length() == 2)
 		{
 			str = "0" + str;
 		}
 		return str;
 	}
 
-	static String fetchJson(String stu_no, String url)
+	static Result fetchResult(String stu_no, String url)
 	//从服务器获取JSON字符串
 	{
-		String content = "exam_no=14116&e_dbname=exam_14116&stu_no=" + stu_no;
-		String result = doPost(url, content);
+		String content = "exam_no=14360&e_dbname=exam_14360&stu_no=" + stu_no;
+		String json = doPost(url, content);
+		Gson gson = new Gson();
+		Result result = gson.fromJson(json, Result.class);
 		return result;
 
 	}
